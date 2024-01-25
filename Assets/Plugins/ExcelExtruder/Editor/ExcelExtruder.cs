@@ -22,12 +22,14 @@ namespace ExcelExtruder
         protected virtual string CONFIG_PATH => "./excelconfig";
         private TypeConvert m_typeConvert;
         private Action<string, float, string, string> _EVENT_PROGRESS;
+        private Action _EVENT_END_PROGRESS;
         private Action<string> _EVENT_LOG;
         private Action<string> _EVENT_ERROR_LOG;
         private void Progress(float progress, string action, string name) => _EVENT_PROGRESS?.Invoke("Excels 序列化", progress, action, name);
+        private void EndProgress() => _EVENT_END_PROGRESS?.Invoke();
         private void LogError(string error) => _EVENT_LOG?.Invoke(error);
         private void Log(string log) => _EVENT_LOG?.Invoke(log);
-        public void Init(TypeConvert typeConvert,
+        public void Init(TypeConvert typeConvert, Action EVENT_END_PROGRESS,
             Action<string, float, string, string> EVENT_PROGRESS,
             Action<string> EVENT_ERROR_LOG,
             Action<string> EVENT_LOG)
@@ -44,27 +46,36 @@ namespace ExcelExtruder
             if (!Directory.Exists(BIN_PATH)) Directory.CreateDirectory(BIN_PATH);
 
             _EVENT_PROGRESS += EVENT_PROGRESS;
+            _EVENT_END_PROGRESS += EVENT_END_PROGRESS;
             _EVENT_LOG += EVENT_LOG;
             _EVENT_ERROR_LOG += EVENT_ERROR_LOG;
         }
         private Dictionary<string, List<string>> ExcelInfos;
         public void SerializeAllExcel()
         {
-            Progress(0, "SerializeExcels", "Start");
-            DirectoryInfo folder = new DirectoryInfo(EXCELRES_PATH);
-            var files = folder.GetFiles("*.xlsx", SearchOption.AllDirectories);
-            var count = files.Length;
-            var index = 0;
-            ExcelInfos = new Dictionary<string, List<string>>();
-            foreach (FileInfo file in files)
+            try
             {
-                Progress(index / count, "SerializeExcel", file.Name);
-                var info = ConverOneExcel(file.Name);
-                ExcelInfos[info.Item1] = info.Item2;
-                index += 1;
+                Progress(0, "SerializeExcels", "Start");
+                DirectoryInfo folder = new DirectoryInfo(EXCELRES_PATH);
+                var files = folder.GetFiles("*.xlsx", SearchOption.AllDirectories);
+                var count = files.Length;
+                var index = 0;
+                ExcelInfos = new Dictionary<string, List<string>>();
+                foreach (FileInfo file in files)
+                {
+                    Progress(index / count, "SerializeExcel", file.Name);
+                    var info = ConverOneExcel(file.Name);
+                    ExcelInfos[info.Item1] = info.Item2;
+                    index += 1;
+                }
+                SaveExcelInfos();
+                Progress(1, "SerializeExcels", "End");
             }
-            SaveExcelInfos();
-            Progress(1, "SerializeExcels", "End");
+            catch (Exception e)
+            {
+                EndProgress();
+                throw e;
+            }
         }
 
         private void SaveExcelInfos()
@@ -207,46 +218,58 @@ public class StaticDataModel
 }
 ";
         protected Action<string, float, string, string> _EVENT_PROGRESS;
+        protected Action _EVENT_END_PROGRESS;
         protected Action<string> _EVENT_LOG;
         protected Action<string> _EVENT_ERROR_LOG;
         private void Progress(float progress, string action, string name) => _EVENT_PROGRESS?.Invoke("DataModel 自动生成",progress, action, name);
+        private void EndProgress() => _EVENT_END_PROGRESS?.Invoke();
         private void LogError(string error) => _EVENT_LOG?.Invoke(error);
         private void Log(string log) => _EVENT_LOG?.Invoke(log);
-        public void Init(Action<string, float, string, string> EVENT_PROGRESS,
+        public void Init(Action EVENT_END_PROGRESS,
+            Action<string, float, string, string> EVENT_PROGRESS,
             Action<string> EVENT_ERROR_LOG,
             Action<string> EVENT_LOG)
         {
             _EVENT_PROGRESS += EVENT_PROGRESS;
+            _EVENT_END_PROGRESS += EVENT_END_PROGRESS;
             _EVENT_LOG += EVENT_LOG;
             _EVENT_ERROR_LOG += EVENT_ERROR_LOG;
         }
         public void GenerateStaticDataModel()
         {
-            if (!File.Exists(config_path))
+            try
             {
-                LogError("Excel config is not found! Please load excels first!");
-                return;
-            }
-            var bin = File.ReadAllBytes(config_path);
-            var excelInfos = MemoryPackSerializer.Deserialize<Dictionary<string, List<string>>>(bin);
-
-            Progress(0, "GenerateStaticDataModel", "Start");
-            var i = 0;
-            var text = STATICDATAMODEL_CONST.Replace("@bin_path@", bin_path);
-            foreach (var item in excelInfos)
-            {
-                Progress(i / excelInfos.Count, "ReadExcel", $"{item.Key}");
-                var ii = 0;
-                foreach (var sheet in item.Value)
+                if (!File.Exists(config_path))
                 {
-                    Progress(ii / item.Value.Count, "ReadSheet", $"{sheet}");
-                    text = text.Insert(text.IndexOf("// @Dont delete - for Gen property@"), $"public List<{sheet}> {sheet}s  {{ set; get; }}\r\n    ");
-                    text = text.Insert(text.IndexOf("// @Dont delete - for Gen Init Func@"), $"{sheet}s = MemoryPackDeserialize<List<{sheet}>>(\"{sheet}\");\r\n        ");
+                    LogError("Excel config is not found! Please load excels first!");
+                    return;
                 }
-                Progress(1, "ReadSheets", "End");
+                var bin = File.ReadAllBytes(config_path);
+                var excelInfos = MemoryPackSerializer.Deserialize<Dictionary<string, List<string>>>(bin);
+
+                Progress(0, "GenerateStaticDataModel", "Start");
+                var i = 0;
+                var text = STATICDATAMODEL_CONST.Replace("@bin_path@", bin_path);
+                foreach (var item in excelInfos)
+                {
+                    Progress(i / excelInfos.Count, "ReadExcel", $"{item.Key}");
+                    var ii = 0;
+                    foreach (var sheet in item.Value)
+                    {
+                        Progress(ii / item.Value.Count, "ReadSheet", $"{sheet}");
+                        text = text.Insert(text.IndexOf("// @Dont delete - for Gen property@"), $"public List<{sheet}> {sheet}s  {{ set; get; }}\r\n    ");
+                        text = text.Insert(text.IndexOf("// @Dont delete - for Gen Init Func@"), $"{sheet}s = MemoryPackDeserialize<List<{sheet}>>(\"{sheet}\");\r\n        ");
+                    }
+                    Progress(1, "ReadSheets", "End");
+                }
+                System.IO.File.WriteAllText(staticdatamodel_path, text);
+                Progress(1, "GenerateStaticDataModel", "End");
             }
-            System.IO.File.WriteAllText(staticdatamodel_path, text);
-            Progress(1, "GenerateStaticDataModel", "End");
+            catch (Exception e)
+            {
+                EndProgress();
+                throw e;
+            }
         }
     }
 }
