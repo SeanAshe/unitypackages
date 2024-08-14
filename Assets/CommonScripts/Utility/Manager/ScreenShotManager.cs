@@ -4,9 +4,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Custom
+namespace Cosmos
 {
-    public class ScreenShotManager : CSingleton<ScreenShotManager>
+    public class ScreenShotManager : CMonoConcurrentSingleton<ScreenShotManager>
     {
         private Texture2D texture;
         private Camera used_camera;

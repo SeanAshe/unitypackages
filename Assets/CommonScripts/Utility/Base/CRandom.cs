@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
-namespace Custom
+namespace Cosmos
 {
     public static class CRandom
     {

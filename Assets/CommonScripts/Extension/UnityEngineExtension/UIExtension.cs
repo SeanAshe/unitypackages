@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Assertions;
 
-namespace Custom
+namespace Cosmos
 {
     public static class UIExtension
     {

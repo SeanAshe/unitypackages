@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System;
 using UnityEngine;
 
-namespace Custom
+namespace Cosmos
 {
     public enum SortMethod
     {

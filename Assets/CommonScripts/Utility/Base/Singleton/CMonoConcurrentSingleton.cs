@@ -1,8 +1,8 @@
 using UnityEngine;
 
-namespace Custom
+namespace Cosmos
 {
-    public class CSingleton<TInstance> : MonoBehaviour where TInstance : CSingleton<TInstance>
+    public class CMonoConcurrentSingleton<TInstance> : MonoBehaviour where TInstance : CMonoConcurrentSingleton<TInstance>
     {
         private static TInstance s_Instance = null;
         private static readonly object s_syncObj = new();

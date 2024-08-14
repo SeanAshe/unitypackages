@@ -6,7 +6,7 @@ using UnityEngine.Events;
 using UnityEngine.Networking;
 using UnityEngine;
 
-namespace Custom
+namespace Cosmos
 {
     public static class UnityMonoExtension
     {
