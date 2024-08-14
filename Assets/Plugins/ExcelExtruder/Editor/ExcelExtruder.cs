@@ -194,7 +194,7 @@ namespace ExcelExtruder
     }
     public class DataModelGenerate
     {
-        protected virtual string staticdatamodel_path => "Assets/Plugins/ExcelExtruder/Runtime/StaticDataModel.cs";
+        protected virtual string staticdatamodel_path => "Assets/StaticData/StaticDataModel.cs";
         protected virtual string bin_path => "StaticData/";
         protected virtual string config_path => "./excelconfig";
         private const string STATICDATAMODEL_CONST=
